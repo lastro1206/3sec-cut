@@ -1,65 +1,96 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
-import { generateScript, saveScript, type GeneratedScript } from "@/lib/scriptApi";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { generateScript, type GeneratedScript } from "@/lib/scriptApi";
 import { useScriptStore } from "@/store/useScriptStore";
-
-const defaultGeneratedScript: GeneratedScript = {
-  hook: "이 조합, 3초 안에 저장하게 됩니다.",
-  body:
-    "뜨겁게 올라오는 메인 메뉴의 김을 먼저 보여주세요. 한입 크기로 들어 올린 뒤, 곁들이는 술잔을 화면 오른쪽에 자연스럽게 배치하면 페어링 포인트가 바로 전달됩니다. 마지막 컷은 메뉴 이름과 오늘의 조합을 짧게 남겨 재방문 욕구를 만듭니다.",
-  cameraGuide: [
-    "0~1초: 메뉴 표면의 윤기와 김을 클로즈업",
-    "1~2초: 술잔을 부딪히는 짧은 ASMR 컷 삽입",
-    "2~3초: 한입 장면과 메뉴명 자막으로 마무리",
-  ],
-};
 
 export default function ResultPage() {
   const mode = useScriptStore((state) => state.mode);
   const menuName = useScriptStore((state) => state.menuName);
   const drink = useScriptStore((state) => state.drink);
   const keywords = useScriptStore((state) => state.keywords);
-  const [generatedScript, setGeneratedScript] =
-    useState<GeneratedScript>(defaultGeneratedScript);
+  const [generatedScript, setGeneratedScript] = useState<GeneratedScript | null>(
+    null,
+  );
+  const [isLoading, setIsLoading] = useState(true);
   const [notice, setNotice] = useState("");
-  const [isRegenerating, setIsRegenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  const scriptText = useMemo(
-    () =>
-      [
-        `[Hook]\n${generatedScript.hook}`,
-        `[본문]\n${generatedScript.body}`,
-        `[촬영 및 ASMR 가이드]\n${generatedScript.cameraGuide.join("\n")}`,
-      ].join("\n\n"),
-    [generatedScript],
-  );
+  const scriptText = useMemo(() => {
+    if (!generatedScript) {
+      return "";
+    }
 
-  const handleCopy = async () => {
-    await navigator.clipboard.writeText(scriptText);
-    setNotice("대본을 클립보드에 복사했어요.");
-  };
+    return [
+      `시선 끌기 Hook\n${generatedScript.hook}`,
+      `본문 대본\n${generatedScript.body}`,
+      `연출 가이드\n${generatedScript.camera_guide.join("\n")}`,
+    ].join("\n\n");
+  }, [generatedScript]);
 
-  const handleRegenerate = async () => {
-    setIsRegenerating(true);
+  const fetchGeneratedScript = useCallback(async () => {
+    setIsLoading(true);
     setNotice("");
 
     try {
-      const nextScript = await generateScript({
+      const result = await generateScript({
         mode,
         menuName,
         drink,
         keywords,
       });
-      setGeneratedScript(nextScript);
-      setNotice("새 대본을 생성했어요.");
+
+      setGeneratedScript(result);
     } catch {
-      setNotice("API 연결 전이라 재생성 요청 뼈대만 실행됐어요.");
+      setNotice("대본 생성 중 문제가 발생했어요. 다시 시도해 주세요.");
+      setGeneratedScript(null);
     } finally {
-      setIsRegenerating(false);
+      setIsLoading(false);
     }
+  }, [drink, keywords, menuName, mode]);
+
+  useEffect(() => {
+    let isActive = true;
+
+    async function loadInitialScript() {
+      try {
+        const result = await generateScript({
+          mode,
+          menuName,
+          drink,
+          keywords,
+        });
+
+        if (isActive) {
+          setGeneratedScript(result);
+        }
+      } catch {
+        if (isActive) {
+          setNotice("대본 생성 중 문제가 발생했어요. 다시 시도해 주세요.");
+          setGeneratedScript(null);
+        }
+      } finally {
+        if (isActive) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    void loadInitialScript();
+
+    return () => {
+      isActive = false;
+    };
+  }, [drink, keywords, menuName, mode]);
+
+  const handleCopy = async () => {
+    if (!scriptText) {
+      return;
+    }
+
+    await navigator.clipboard.writeText(scriptText);
+    setNotice("대본을 클립보드에 복사했어요.");
   };
 
   const handleSave = async () => {
@@ -67,16 +98,9 @@ export default function ResultPage() {
     setNotice("");
 
     try {
-      await saveScript({
-        mode,
-        menuName,
-        drink,
-        keywords,
-        generatedScript,
-      });
-      setNotice("보관함에 저장했어요.");
-    } catch {
-      setNotice("API 연결 전이라 저장 요청 뼈대만 실행됐어요.");
+      // TODO: Supabase scripts 테이블 연동 시 이 지점에서 insert를 호출합니다.
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      setNotice("보관함 저장 함수 뼈대를 실행했어요.");
     } finally {
       setIsSaving(false);
     }
@@ -102,84 +126,133 @@ export default function ResultPage() {
 
       <section className="pt-8">
         <p className="text-sm font-bold text-[#3182F6]">
-          {menuName || "메뉴"} · {drink ?? "주류 선택 안 함"}
+          {mode === "owner" ? "사장님 모드" : "리뷰어 모드"}
         </p>
         <h1 className="mt-2 text-[30px] font-extrabold leading-[1.25] tracking-[-0.03em] text-[#333D4B]">
           바로 촬영할 수 있는
           <br />
           숏폼 대본이에요
         </h1>
-        <div className="mt-4 flex flex-wrap gap-2">
-          {keywords.map((keyword) => (
-            <span
-              key={keyword}
-              className="rounded-full bg-[#F2F4F6] px-3 py-2 text-xs font-bold text-[#4E5968]"
-            >
-              {keyword}
-            </span>
-          ))}
-        </div>
-      </section>
-
-      <section className="mt-8 space-y-4">
-        <article className="rounded-[28px] bg-[#F2F4F6] p-6">
-          <p className="text-sm font-bold text-[#3182F6]">시선 끌기 Hook</p>
-          <h2 className="mt-3 text-2xl font-extrabold leading-snug tracking-[-0.02em] text-[#333D4B]">
-            {generatedScript.hook}
-          </h2>
-        </article>
-
-        <article className="rounded-[28px] bg-[#F2F4F6] p-6">
-          <p className="text-sm font-bold text-[#8B95A1]">본문 대본</p>
-          <p className="mt-3 whitespace-pre-line text-[17px] font-medium leading-8 text-[#4E5968]">
-            {generatedScript.body}
-          </p>
-        </article>
-
-        <article className="rounded-[28px] bg-[#F2F4F6] p-6">
-          <p className="text-sm font-bold text-[#8B95A1]">
-            촬영 및 소리(ASMR) 가이드
-          </p>
-          <ul className="mt-4 space-y-3">
-            {generatedScript.cameraGuide.map((guide) => (
-              <li key={guide} className="flex gap-3 text-sm leading-6 text-[#4E5968]">
-                <span className="mt-1 h-5 w-5 shrink-0 rounded-full bg-white text-center text-xs font-extrabold text-[#3182F6]">
-                  ✓
-                </span>
-                <span>{guide}</span>
-              </li>
+        <p className="mt-3 text-base font-semibold leading-7 text-[#4E5968]">
+          {menuName || "메뉴"} · {drink ?? "술 없음"}
+        </p>
+        {keywords.length > 0 ? (
+          <div className="mt-4 flex flex-wrap gap-2">
+            {keywords.map((keyword) => (
+              <span
+                key={keyword}
+                className="rounded-full bg-[#F2F4F6] px-3 py-2 text-xs font-bold text-[#4E5968]"
+              >
+                {keyword}
+              </span>
             ))}
-          </ul>
-        </article>
+          </div>
+        ) : null}
       </section>
+
+      {isLoading ? (
+        <section className="mt-10">
+          <div className="rounded-2xl bg-[#F2F4F6] p-6">
+            <p className="text-lg font-extrabold text-[#333D4B]">
+              사장님의 대본을 맛있게 굽고 있어요...
+            </p>
+            <p className="mt-2 text-sm font-medium text-[#8B95A1]">
+              메뉴와 술 조합을 분석해 후킹 멘트를 준비 중입니다.
+            </p>
+          </div>
+          <div className="mt-4 space-y-4">
+            {[120, 180, 150].map((width) => (
+              <div key={width} className="rounded-2xl bg-[#F2F4F6] p-6">
+                <div className="h-4 w-24 rounded-full bg-white" />
+                <div
+                  className="mt-5 h-5 rounded-full bg-white"
+                  style={{ width }}
+                />
+                <div className="mt-3 h-5 w-full rounded-full bg-white" />
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : generatedScript ? (
+        <section className="mt-8 space-y-4">
+          <article className="rounded-2xl bg-[#F2F4F6] p-6">
+            <p className="text-sm font-bold text-[#3182F6]">
+              시선 끌기 Hook
+            </p>
+            <h2 className="mt-3 text-[26px] font-extrabold leading-snug tracking-[-0.03em] text-[#333D4B]">
+              {generatedScript.hook}
+            </h2>
+          </article>
+
+          <article className="rounded-2xl bg-[#F2F4F6] p-6">
+            <p className="text-sm font-bold text-[#8B95A1]">본문 대본</p>
+            <p className="mt-3 whitespace-pre-line text-[17px] font-semibold leading-relaxed text-[#4E5968]">
+              {generatedScript.body}
+            </p>
+          </article>
+
+          <article className="rounded-2xl bg-[#F2F4F6] p-6">
+            <p className="text-sm font-bold text-[#8B95A1]">연출 가이드</p>
+            <ul className="mt-4 space-y-3">
+              {generatedScript.camera_guide.map((guide) => (
+                <li
+                  key={guide}
+                  className="flex gap-3 text-sm font-semibold leading-6 text-[#4E5968]"
+                >
+                  <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white text-xs font-extrabold text-[#3182F6]">
+                    ✓
+                  </span>
+                  <span>{guide}</span>
+                </li>
+              ))}
+            </ul>
+          </article>
+        </section>
+      ) : (
+        <section className="mt-10 rounded-2xl bg-[#F2F4F6] p-6 text-center">
+          <p className="text-lg font-extrabold text-[#333D4B]">
+            대본을 불러오지 못했어요
+          </p>
+          <button
+            type="button"
+            onClick={() => void fetchGeneratedScript()}
+            className="mt-5 h-12 rounded-2xl bg-[#3182F6] px-5 text-sm font-extrabold text-white"
+          >
+            다시 시도하기
+          </button>
+        </section>
+      )}
 
       {notice ? (
-        <p className="mt-5 rounded-2xl bg-[#F2F4F6] px-4 py-3 text-center text-sm font-bold text-[#4E5968]">
-          {notice}
-        </p>
+        <div className="fixed inset-x-0 bottom-40 z-10 mx-auto w-full max-w-[480px] px-5">
+          <p className="rounded-2xl bg-[#333D4B] px-4 py-3 text-center text-sm font-bold text-white shadow-[0_12px_24px_rgba(51,61,75,0.18)]">
+            {notice}
+          </p>
+        </div>
       ) : null}
 
       <div className="fixed inset-x-0 bottom-0 mx-auto w-full max-w-[480px] bg-white/95 px-5 pb-5 pt-3 backdrop-blur">
         <button
           type="button"
           onClick={handleCopy}
-          className="h-[60px] w-full rounded-[22px] bg-[#3182F6] text-base font-extrabold text-white shadow-[0_12px_24px_rgba(49,130,246,0.22)] transition active:scale-[0.99]"
+          disabled={isLoading || !generatedScript}
+          className="h-[60px] w-full rounded-[22px] bg-[#3182F6] text-base font-extrabold text-white shadow-[0_12px_24px_rgba(49,130,246,0.22)] transition active:scale-[0.99] disabled:bg-[#F2F4F6] disabled:text-[#8B95A1] disabled:shadow-none"
         >
           대본 복사하기
         </button>
         <div className="mt-3 grid grid-cols-2 gap-3">
           <button
             type="button"
-            onClick={handleRegenerate}
-            disabled={isRegenerating}
+            onClick={() => void fetchGeneratedScript()}
+            disabled={isLoading}
             className="h-14 rounded-[20px] bg-[#F2F4F6] text-sm font-extrabold text-[#333D4B] disabled:text-[#8B95A1]"
           >
-            {isRegenerating ? "생성 중" : "다시 생성하기"}
+            다시 생성하기
           </button>
           <button
             type="button"
             onClick={handleSave}
-            disabled={isSaving}
+            disabled={isLoading || isSaving || !generatedScript}
             className="h-14 rounded-[20px] bg-[#F2F4F6] text-sm font-extrabold text-[#333D4B] disabled:text-[#8B95A1]"
           >
             {isSaving ? "저장 중" : "보관함에 저장"}

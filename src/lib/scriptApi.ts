@@ -4,7 +4,7 @@ import type { ScriptMode } from "@/store/useScriptStore";
 export interface GeneratedScript {
   hook: string;
   body: string;
-  cameraGuide: string[];
+  camera_guide: string[];
 }
 
 export type GenerateScriptPayload = {
@@ -29,7 +29,7 @@ export async function generateScript(
   payload: GenerateScriptPayload,
 ): Promise<GeneratedScript> {
   const { data } = await scriptClient.post<GeneratedScript>(
-    "/api/scripts/generate",
+    "/api/generate",
     payload,
   );
 
