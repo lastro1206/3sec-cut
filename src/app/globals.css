@@ -1,0 +1,41 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #333d4b;
+  --toss-blue: #3182f6;
+  --toss-gray-50: #f9fafb;
+  --toss-gray-100: #f2f4f6;
+  --toss-gray-700: #4e5968;
+  --toss-gray-500: #8b95a1;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-toss-blue: var(--toss-blue);
+  --color-toss-gray-50: var(--toss-gray-50);
+  --color-toss-gray-100: var(--toss-gray-100);
+  --color-toss-gray-700: var(--toss-gray-700);
+  --color-toss-gray-500: var(--toss-gray-500);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button,
+a,
+input {
+  font: inherit;
+}
+
+button,
+a {
+  touch-action: manipulation;
+}

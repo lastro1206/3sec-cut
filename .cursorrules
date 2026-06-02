@@ -1,0 +1,63 @@
+# Project Context: 요식업 숏폼 대본 자동 생성 Micro SaaS
+
+## 1. 서비스 개요 (Project Identity)
+- **목적:** 요식업 사장님(매장 홍보)과 일반 크리에이터(맛집 리뷰)를 위한 맞춤형 숏폼(릴스, 쇼츠, 틱톡) 대본 자동 생성 웹 서비스
+- **플랫폼:** 모바일 최적화 웹 애플리케이션 (Mobile-First Web App)
+- **핵심 기능:**
+  1. **밥과 술의 조화(페어링) 기반 대본 생성:** 메인 요리와 곁들인 주류 등을 조합하여 상황에 맞는 찰진 후킹 멘트 및 대본 제공
+  2. **오감 자극 연출 가이드:** ASMR(지글거리는 소리 등) 삽입 타이밍 및 카메라 구도 가이드라인 동시 제공
+  3. **초간편 입력 UI:** 텍스트 타이핑을 최소화하고 직관적인 버튼 선택만으로 대본 생성
+- **수익화 전략:** 일반 유저는 광고 모델(단기), 요식업 사장님은 고도화된 홍보 대본용 월 구독 SaaS 모델(장기) 적용
+
+## 2. 타겟 사용자 유형 (User Roles)
+- `owner`: 본인의 매장을 홍보하려는 요식업 자영업자
+- `reviewer`: 내돈내산 맛집 기록 및 숏폼 제작을 즐기는 일반 크리에이터
+
+## 3. 기술 스택 (Tech Stack)
+- **Frontend Framework:** Next.js (App Router 기반, `src/` 디렉토리 사용)
+- **Language:** TypeScript (엄격한 타입 검사 적용)
+- **Styling:** Tailwind CSS (반응형 및 모바일 최적화)
+- **State Management:** Zustand (전역 상태 관리)
+- **Data Fetching:** Axios (외부 AI API 및 결제 서버 비동기 통신)
+- **Backend & Database:** Supabase (PostgreSQL, Authentication)
+- **CI/CD:** GitHub Actions (코드 푸시 시 빌드 테스트 및 Notion 데이터베이스에 배포 내역 자동 기록)
+- **3rd Party SaaS:** PortOne/Toss Payments (결제), Channel Talk (고객 응대), Amplitude (사용자 분석)
+
+## 4. 데이터베이스 스키마 및 보안 (Supabase Schema & RLS)
+프로젝트는 Supabase를 사용하며, 프론트엔드에서 안전하게 접근할 수 있도록 행 수준 보안(Row Level Security, RLS)이 적용되어 있습니다.
+
+### Tables
+1. **`profiles`**
+   - `id` (UUID, PK, references `auth.users`)
+   - `user_type` (TEXT, 'owner' or 'reviewer')
+   - `name` (TEXT)
+   - `created_at` (TIMESTAMP)
+2. **`scripts`**
+   - `id` (UUID, PK)
+   - `user_id` (UUID, references `profiles(id)`)
+   - `script_mode` (TEXT, 'promotion' or 'review')
+   - `menu_name` (TEXT)
+   - `drink_pairing` (TEXT)
+   - `keywords` (TEXT[])
+   - `generated_result` (JSONB) - 구조: `{ hook, body, camera_guide }`
+   - `created_at` (TIMESTAMP)
+3. **`subscriptions`**
+   - `id` (UUID, PK)
+   - `user_id` (UUID, references `profiles(id)`)
+   - `plan_type` (TEXT, 'free' or 'pro')
+   - `status` (TEXT, 'active' 등)
+   - `current_period_end` (TIMESTAMP)
+
+### RLS Policies
+- `profiles`: 사용자는 자신의 프로필만 조회/수정 가능.
+- `scripts`: 사용자는 자신의 대본만 생성/조회/수정/삭제 가능 (철저한 데이터 격리).
+- `subscriptions`: 사용자는 자신의 구독 상태만 조회 가능.
+
+## 5. 커서 AI 코딩 가이드라인 (Cursor AI Instructions)
+- **응답 언어:** 사용자가 요청하는 모든 영어와 관련된 코드 및 기술 문서의 핵심 설명은 한국어로 해석 및 요약하여 제공할 것.
+- **코드 스타일:**
+  - Next.js App Router의 서버 컴포넌트와 클라이언트 컴포넌트(`"use client"`)를 명확히 분리하여 작성할 것.
+  - 전역 상태가 필요한 경우 복잡한 Context API 대신 Zustand를 우선적으로 활용할 것.
+  - 외부 데이터 요청 및 Supabase 외의 API 호출 시 Axios를 활용하여 일관된 에러 핸들링을 구현할 것.
+  - 모바일 웹 최적화를 위해 Tailwind CSS 기반의 반응형 디자인을 최우선으로 적용할 것.
+- **보안:** Supabase 클라이언트 작성 시 브라우저와 서버 환경을 명확히 구분하여 API 키가 불필요하게 노출되지 않도록 설계할 것.
