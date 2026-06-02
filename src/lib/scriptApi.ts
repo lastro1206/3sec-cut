@@ -1,10 +1,16 @@
 import axios from "axios";
-import type { GeneratedScript, ScriptMode } from "@/store/useScriptStore";
+import type { ScriptMode } from "@/store/useScriptStore";
+
+export interface GeneratedScript {
+  hook: string;
+  body: string;
+  cameraGuide: string[];
+}
 
 export type GenerateScriptPayload = {
-  mode: ScriptMode;
+  mode: ScriptMode | null;
   menuName: string;
-  drinkPairing: string;
+  drink: string | null;
   keywords: string[];
 };
 

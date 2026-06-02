@@ -33,7 +33,7 @@ export default function Home() {
 
       <section className="mt-10 flex flex-1 flex-col gap-4">
         <Link
-          href="/create?mode=promotion"
+          href="/create?mode=owner"
           className="group flex min-h-[210px] flex-col justify-between rounded-[28px] bg-[#3182F6] p-6 text-white shadow-[0_16px_30px_rgba(49,130,246,0.24)] transition-transform active:scale-[0.99]"
         >
           <div>
@@ -52,7 +52,7 @@ export default function Home() {
         </Link>
 
         <Link
-          href="/create?mode=review"
+          href="/create?mode=reviewer"
           className="flex min-h-[180px] flex-col justify-between rounded-[28px] bg-[#F2F4F6] p-6 text-[#333D4B] transition-transform active:scale-[0.99]"
         >
           <div>

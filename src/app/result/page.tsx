@@ -2,16 +2,27 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { generateScript, saveScript } from "@/lib/scriptApi";
+import { generateScript, saveScript, type GeneratedScript } from "@/lib/scriptApi";
 import { useScriptStore } from "@/store/useScriptStore";
+
+const defaultGeneratedScript: GeneratedScript = {
+  hook: "이 조합, 3초 안에 저장하게 됩니다.",
+  body:
+    "뜨겁게 올라오는 메인 메뉴의 김을 먼저 보여주세요. 한입 크기로 들어 올린 뒤, 곁들이는 술잔을 화면 오른쪽에 자연스럽게 배치하면 페어링 포인트가 바로 전달됩니다. 마지막 컷은 메뉴 이름과 오늘의 조합을 짧게 남겨 재방문 욕구를 만듭니다.",
+  cameraGuide: [
+    "0~1초: 메뉴 표면의 윤기와 김을 클로즈업",
+    "1~2초: 술잔을 부딪히는 짧은 ASMR 컷 삽입",
+    "2~3초: 한입 장면과 메뉴명 자막으로 마무리",
+  ],
+};
 
 export default function ResultPage() {
   const mode = useScriptStore((state) => state.mode);
   const menuName = useScriptStore((state) => state.menuName);
-  const drinkPairing = useScriptStore((state) => state.drinkPairing);
+  const drink = useScriptStore((state) => state.drink);
   const keywords = useScriptStore((state) => state.keywords);
-  const generatedScript = useScriptStore((state) => state.generatedScript);
-  const setGeneratedScript = useScriptStore((state) => state.setGeneratedScript);
+  const [generatedScript, setGeneratedScript] =
+    useState<GeneratedScript>(defaultGeneratedScript);
   const [notice, setNotice] = useState("");
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -39,7 +50,7 @@ export default function ResultPage() {
       const nextScript = await generateScript({
         mode,
         menuName,
-        drinkPairing,
+        drink,
         keywords,
       });
       setGeneratedScript(nextScript);
@@ -59,7 +70,7 @@ export default function ResultPage() {
       await saveScript({
         mode,
         menuName,
-        drinkPairing,
+        drink,
         keywords,
         generatedScript,
       });
@@ -91,7 +102,7 @@ export default function ResultPage() {
 
       <section className="pt-8">
         <p className="text-sm font-bold text-[#3182F6]">
-          {menuName || "메뉴"} · {drinkPairing}
+          {menuName || "메뉴"} · {drink ?? "주류 선택 안 함"}
         </p>
         <h1 className="mt-2 text-[30px] font-extrabold leading-[1.25] tracking-[-0.03em] text-[#333D4B]">
           바로 촬영할 수 있는

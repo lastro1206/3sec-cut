@@ -6,23 +6,19 @@ import { Suspense, useEffect } from "react";
 import { useScriptStore, type ScriptMode } from "@/store/useScriptStore";
 
 const drinkOptions = [
-  { name: "소주", icon: "잔" },
-  { name: "맥주", icon: "컵" },
-  { name: "하이볼", icon: "볼" },
-  { name: "막걸리", icon: "병" },
-  { name: "와인", icon: "와" },
-  { name: "무알콜", icon: "무" },
+  "소주",
+  "맥주",
+  "하이볼",
+  "막걸리",
+  "없음",
 ];
 
 const keywordOptions = [
   "가성비",
-  "육즙",
-  "불맛",
-  "바삭함",
-  "데이트",
-  "회식",
-  "혼밥",
-  "숨은맛집",
+  "미친양",
+  "노포분위기",
+  "퇴근길",
+  "밥도둑",
 ];
 
 function CreateContent() {
@@ -30,22 +26,22 @@ function CreateContent() {
   const searchParams = useSearchParams();
   const mode = useScriptStore((state) => state.mode);
   const menuName = useScriptStore((state) => state.menuName);
-  const drinkPairing = useScriptStore((state) => state.drinkPairing);
+  const drink = useScriptStore((state) => state.drink);
   const keywords = useScriptStore((state) => state.keywords);
   const setMode = useScriptStore((state) => state.setMode);
   const setMenuName = useScriptStore((state) => state.setMenuName);
-  const setDrinkPairing = useScriptStore((state) => state.setDrinkPairing);
+  const setDrink = useScriptStore((state) => state.setDrink);
   const toggleKeyword = useScriptStore((state) => state.toggleKeyword);
 
   useEffect(() => {
     const selectedMode = searchParams.get("mode");
 
-    if (selectedMode === "promotion" || selectedMode === "review") {
+    if (selectedMode === "owner" || selectedMode === "reviewer") {
       setMode(selectedMode as ScriptMode);
     }
   }, [searchParams, setMode]);
 
-  const canSubmit = menuName.trim().length > 0 && drinkPairing.length > 0;
+  const canSubmit = menuName.trim().length > 0;
 
   return (
     <main className="min-h-screen bg-white px-5 pb-36 pt-5">
@@ -58,7 +54,7 @@ function CreateContent() {
           ‹
         </Link>
         <p className="text-sm font-bold text-[#8B95A1]">
-          {mode === "promotion" ? "사장님 모드" : "리뷰어 모드"}
+          {mode === "owner" ? "사장님 모드" : "리뷰어 모드"}
         </p>
       </header>
 
@@ -78,20 +74,17 @@ function CreateContent() {
           <div>
             <p className="text-sm font-bold text-[#3182F6]">1단계</p>
             <h2 className="mt-1 text-xl font-extrabold text-[#333D4B]">
-              메인 메뉴
+              오늘 소개할 음식은 무엇인가요?
             </h2>
           </div>
           <p className="text-xs font-semibold text-[#8B95A1]">필수</p>
         </div>
-        <label className="block rounded-[24px] bg-[#F2F4F6] p-5 transition focus-within:ring-2 focus-within:ring-[#3182F6]">
-          <span className="text-sm font-semibold text-[#8B95A1]">
-            어떤 메뉴를 찍을까요?
-          </span>
+        <label className="block rounded-2xl border-2 border-transparent bg-[#F2F4F6] p-5 transition-colors focus-within:border-[#3182F6]">
           <input
             value={menuName}
             onChange={(event) => setMenuName(event.target.value)}
-            placeholder="예: 숯불 닭갈비"
-            className="mt-2 w-full bg-transparent text-xl font-extrabold text-[#333D4B] outline-none placeholder:text-[#8B95A1]"
+            placeholder="예: 숯불 닭갈비, 김치찌개"
+            className="w-full bg-transparent text-lg font-bold text-[#333D4B] outline-none placeholder:text-[#8B95A1]"
           />
         </label>
       </section>
@@ -99,33 +92,24 @@ function CreateContent() {
       <section className="mt-9">
         <p className="text-sm font-bold text-[#3182F6]">2단계</p>
         <h2 className="mt-1 text-xl font-extrabold text-[#333D4B]">
-          곁들임 주류
+          어떤 술과 함께하나요?
         </h2>
-        <div className="mt-4 grid grid-cols-3 gap-3">
-          {drinkOptions.map((drink) => {
-            const isSelected = drinkPairing === drink.name;
+        <div className="mt-4 grid grid-cols-2 gap-3">
+          {drinkOptions.map((drinkOption) => {
+            const isSelected = drink === drinkOption;
 
             return (
               <button
-                key={drink.name}
+                key={drinkOption}
                 type="button"
-                onClick={() => setDrinkPairing(drink.name)}
-                className={`flex h-24 flex-col items-center justify-center rounded-[24px] text-sm font-bold transition active:scale-[0.98] ${
+                onClick={() => setDrink(drinkOption)}
+                className={`h-14 rounded-2xl text-base font-bold transition-colors active:scale-[0.98] ${
                   isSelected
-                    ? "bg-[#3182F6] text-white shadow-[0_10px_22px_rgba(49,130,246,0.22)]"
+                    ? "bg-[#3182F6] text-white"
                     : "bg-[#F2F4F6] text-[#4E5968]"
                 }`}
               >
-                <span
-                  className={`mb-2 flex h-9 w-9 items-center justify-center rounded-full text-xs ${
-                    isSelected
-                      ? "bg-white/20 text-white"
-                      : "bg-white text-[#8B95A1]"
-                  }`}
-                >
-                  {drink.icon}
-                </span>
-                {drink.name}
+                {drinkOption}
               </button>
             );
           })}
@@ -135,11 +119,8 @@ function CreateContent() {
       <section className="mt-9">
         <p className="text-sm font-bold text-[#3182F6]">3단계</p>
         <h2 className="mt-1 text-xl font-extrabold text-[#333D4B]">
-          핵심 강조 포인트
+          어떤 점을 강조할까요?
         </h2>
-        <p className="mt-2 text-sm leading-6 text-[#8B95A1]">
-          여러 개를 선택할 수 있어요.
-        </p>
         <div className="mt-4 flex flex-wrap gap-2">
           {keywordOptions.map((keyword) => {
             const isSelected = keywords.includes(keyword);
@@ -149,7 +130,7 @@ function CreateContent() {
                 key={keyword}
                 type="button"
                 onClick={() => toggleKeyword(keyword)}
-                className={`h-12 rounded-2xl px-5 text-sm font-bold transition active:scale-[0.98] ${
+                className={`h-11 rounded-xl px-4 text-sm font-bold transition-colors active:scale-[0.98] ${
                   isSelected
                     ? "bg-[#3182F6] text-white"
                     : "bg-[#F2F4F6] text-[#4E5968]"
@@ -167,7 +148,7 @@ function CreateContent() {
           type="button"
           disabled={!canSubmit}
           onClick={() => router.push("/result")}
-          className="h-16 w-full rounded-[22px] bg-[#3182F6] text-lg font-extrabold text-white shadow-[0_12px_24px_rgba(49,130,246,0.24)] transition active:scale-[0.99] disabled:bg-[#D1D6DB] disabled:shadow-none"
+          className="h-16 w-full rounded-[22px] bg-[#3182F6] text-lg font-extrabold text-white shadow-[0_12px_24px_rgba(49,130,246,0.24)] transition active:scale-[0.99] disabled:bg-[#F2F4F6] disabled:text-[#8B95A1] disabled:shadow-none"
         >
           3초 만에 숏폼 대본 뽑기 🚀
         </button>
